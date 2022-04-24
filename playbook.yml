@@ -1,0 +1,129 @@
+- hosts: all
+  become: true
+  # vars_files:
+  #   - vars/default.yml
+
+  tasks:
+    - name: Install prerequisites
+      apt: name={{ item }} update_cache=yes state=latest force_apt_get=yes
+      loop: [ 'aptitude' ]
+
+    - name: Install Apache
+      apt: name=apache2 update_cache=yes state=latest
+
+    - name: Install Php
+      apt: 
+        name:
+          - php 
+          - libapache2-mod-php 
+          - php-mysql
+          - php7.4-mysqli
+          - mysql-client
+
+    - name: Copy index test page
+      ansible.builtin.copy:
+        src: "files/"
+        dest: "/var/www/html/"
+    - name: Remove default file 
+      ansible.builtin.file:
+        path: /var/www/html/index.html
+        state: absent
+    - name: Allow everything and enable UFW
+      community.general.ufw:
+        state: enabled
+        policy: allow
+        
+    - name: "UFW - Allow HTTP on port 80"
+      ufw:
+        rule: allow
+        port: "80"
+        proto: tcp
+        
+    - name: "UFW - Allow HTTP on port 80"
+      ufw:
+        rule: allow
+        port: "3306"
+        proto: tcp
+        - hosts: database
+  become: yes
+
+  tasks:
+    - name: Install prerequisites
+      apt: name={{ item }} update_cache=yes state=latest force_apt_get=yes
+      loop: [ 'aptitude' ]
+
+    - name: Install Mysql server
+      apt: 
+       name: 
+        - mysql-server 
+        - python3-pymysql
+
+    - name: Enable firewall
+      community.general.ufw:
+        state: enabled
+        policy: allow
+
+    - name: "UFW - Allow Mysql on port 3306"
+      ufw:
+        rule: allow
+        port: "3306"
+        proto: tcp
+
+    # - name: Enable remote login to mysql by allowing all hosts to connect
+    #   lineinfile:
+    #      path: /etc/mysql/mysql.conf.d/mysqld.cnf
+    #      regexp: '^mysqlx-bind-address'
+    #      line: 'mysqlx-bind-address = 0.0.0.0'
+    #      backup: yes
+   
+    - name: Enable remote login to mysql by allowing all hosts to connect
+      lineinfile:
+         path: /etc/mysql/mysql.conf.d/mysqld.cnf
+         regexp: '^bind-address'
+         line: 'bind-address = 0.0.0.0'
+         backup: yes
+      notify:
+         - Restart mysql
+
+    - name: creating mysql user admin
+      mysql_user:
+        name: "admin"
+        password: "Devops1!!"
+        priv: '*.*:ALL'
+        host: '%'
+        state: present
+        # login_user: root  
+        # login_password: "password" 
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+
+
+    - name: creating fiifi db
+      mysql_db:
+        name: "fiifi"
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+
+
+
+    - name: start and enable mysql service
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: Restart mysql
+      service:
+        name: mysql
+        state: restarted
+
+  handlers:
+    - name: Reload Apache
+      service:
+        name: apache2
+        state: reloaded
+
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted
