@@ -44,10 +44,9 @@
         rule: allow
         port: "3306"
         proto: tcp
-        - hosts: database
-  become: yes
 
-  tasks:
+
+
     - name: Install prerequisites
       apt: name={{ item }} update_cache=yes state=latest force_apt_get=yes
       loop: [ 'aptitude' ]
@@ -76,40 +75,39 @@
     #      line: 'mysqlx-bind-address = 0.0.0.0'
     #      backup: yes
    
-    - name: Enable remote login to mysql by allowing all hosts to connect
-      lineinfile:
-         path: /etc/mysql/mysql.conf.d/mysqld.cnf
-         regexp: '^bind-address'
-         line: 'bind-address = 0.0.0.0'
-         backup: yes
-      notify:
-         - Restart mysql
+      - name: Enable remote login to mysql by allowing all hosts to connect
+        lineinfile:
+          path: /etc/mysql/mysql.conf.d/mysqld.cnf
+          regexp: '^bind-address'
+          line: 'bind-address = 0.0.0.0'
+          backup: yes
+        notify:
+          - Restart mysql
 
-    - name: creating mysql user admin
-      mysql_user:
-        name: "admin"
-        password: "Devops1!!"
-        priv: '*.*:ALL'
-        host: '%'
-        state: present
-        # login_user: root  
-        # login_password: "password" 
-        login_unix_socket: /var/run/mysqld/mysqld.sock
-
-
-    - name: creating fiifi db
-      mysql_db:
-        name: "fiifi"
-        state: present
-        login_unix_socket: /var/run/mysqld/mysqld.sock
-
+      - name: creating mysql user admin
+        mysql_user:
+          name: "admin"
+          password: "Devops1!!"
+          priv: '*.*:ALL'
+          host: '%'
+          state: present
+          # login_user: root  
+          # login_password: "password" 
+          login_unix_socket: /var/run/mysqld/mysqld.sock
+          
+      - name: creating fiifi db
+        mysql_db:
+          name: "fiifi"
+          state: present
+          login_unix_socket: /var/run/mysqld/mysqld.sock
 
 
-    - name: start and enable mysql service
-      service:
-        name: mysql
-        state: started
-        enabled: yes
+
+      - name: start and enable mysql service
+        service:
+          name: mysql
+          state: started
+          enabled: yes
 
   handlers:
     - name: Restart mysql
