@@ -28,6 +28,10 @@
       ansible.builtin.file:
         path: /var/www/html/index.html
         state: absent
+    - name: Allow everything and enable UFW
+      community.general.ufw:
+        state: enabled
+        policy: allow
         
     - name: "UFW - Allow HTTP on port 80"
       ufw:
